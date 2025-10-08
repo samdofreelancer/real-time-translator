@@ -6,16 +6,18 @@ import time
 from datetime import datetime
 
 class RealtimeTranscriber:
-    def __init__(self, device_index=None, sample_rate=16000):
+    def __init__(self, device_index=None, sample_rate=16000, filename="transcript.txt"):
         """
         Initialize real-time transcriber for virtual audio cable
-        
+
         Args:
             device_index: Index of virtual audio cable device (None for default)
             sample_rate: Sample rate in Hz (16000 recommended for speech)
+            filename: File to save real-time transcripts
         """
         self.sample_rate = sample_rate
         self.device_index = device_index
+        self.filename = filename
         self.recognizer = sr.Recognizer()
         self.audio_queue = queue.Queue()
         self.transcripts = []
@@ -42,7 +44,7 @@ class RealtimeTranscriber:
     def transcribe_worker(self):
         """Worker thread for transcription"""
         audio_buffer = b''
-        chunk_duration = 3  # Process every 3 seconds
+        chunk_duration = 1  # Process every 1 second for more real-time
         bytes_per_second = self.sample_rate * 2  # 16-bit = 2 bytes
         chunk_size = bytes_per_second * chunk_duration
         
@@ -78,7 +80,11 @@ class RealtimeTranscriber:
                             'text': text
                         }
                         self.transcripts.append(transcript_entry)
-                        print(f"[{timestamp}] {text}")
+                        print(f"{text} ", end="")
+
+                        # Append to file in real-time as paragraph
+                        with open(self.filename, 'a', encoding='utf-8') as f:
+                            f.write(f"{text} ")
                         
                     except sr.UnknownValueError:
                         # No speech detected
@@ -116,6 +122,10 @@ class RealtimeTranscriber:
             
             print("\n🎤 Real-time transcription started!")
             print("Press Ctrl+C to stop...\n")
+            
+            # Initialize transcript file
+            with open(self.filename, 'w', encoding='utf-8') as f:
+                f.write("=== Real-time Transcript ===\n\n")
             
             stream.start_stream()
             
@@ -171,7 +181,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         pass
     finally:
-        # Save transcript
-        transcriber.save_transcript("youtube_transcript.txt")
+        # Save transcript - commented out since real-time saving is enabled
+        # transcriber.save_transcript("youtube_transcript.txt")
         print("\n📄 Full transcript:")
         print(transcriber.get_full_transcript())
